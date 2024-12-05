@@ -9,7 +9,10 @@ const RoomSchema = new mongoose.Schema({
     participants: [
         {
             rollNo: { type: String },
-            joinTime: { type: Date, default: Date.now },
+            department: {String},
+            year: {String},
+            photoUrl: {String},
+            joinTime: { type: Date, default: Date.now }
         },
     ],
 });
