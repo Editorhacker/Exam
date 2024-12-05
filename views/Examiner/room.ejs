@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= room.roomName %> - Classroom</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="display-5"><%= room.roomName %></h1>
+            <p class="text-muted">Room ID: <%= room.roomId %></p>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title mb-3">Participants List</h5>
+                <% if (room.participants.length === 0) { %>
+                    <p class="text-muted">No participants have joined yet.</p>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Roll No</th>
+                                    <th scope="col">Join Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% room.participants.forEach((participant, index) => { %>
+                                    <tr>
+                                        <td><%= index + 1 %></td>
+                                        <td><%= participant.rollNo %></td>
+                                        <td><%= moment(participant.joinTime).format('LLL') %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Socket.IO Script -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+
+        const socket = io();
+        
+        // Listen for new participants
+        socket.on("participantJoined", (data) => {
+            console.log("Participant joined:", data);
+        if (data.roomId === "<%= room.roomId %>") {
+        const tableBody = document.querySelector("tbody");
+        console.log("Table body found:", tableBody);
+        const newRow = document.createElement("tr");
+
+        newRow.innerHTML = `
+            <td>${tableBody.rows.length + 1}</td>
+            <td>${data.participant.rollNo}</td>
+            <td>${new Date(data.participant.joinTime).toLocaleString()}</td>
+        `;
+
+        tableBody.appendChild(newRow);
+        }
+        });
+
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
