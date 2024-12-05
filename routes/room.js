@@ -1,19 +1,22 @@
 const express = require("express");
 const router = express.Router();
 const Room = require("../models/Room"); // Assuming you have a Room model
-const Participant = require("../models/Degree"); // Assuming you have a Participant model
+const Degree = require("../models/Degree"); // Using Degree model for participant info
 
 // Render Room Page with Participants List
 router.get("/:roomId", async (req, res) => {
     try {
         const { roomId } = req.params;
-        const room = await Room.findById(roomId).populate("participants"); // Fetch room and its participants
+        const room = await Room.findById(roomId).populate("participants"); // Assuming participants are stored as references in the Room model
 
         if (!room) {
             return res.status(404).send("Room not found");
         }
 
-        res.render("room", { room });
+        // Fetch the details of participants from Degree model (only the required fields)
+        const participants = await Degree.find({ _id: { $in: room.participants } }).select('photoUrl department year');
+
+        res.render("room", { room, participants });
     } catch (err) {
         console.error(err);
         res.status(500).send("Server Error");
@@ -26,25 +29,24 @@ router.post("/:roomId/participants", async (req, res) => {
         const { roomId } = req.params;
         const { rollNo, department, year, photoUrl } = req.body;
 
-        // Create a new participant
-        const newParticipant = new Participant({
+        // Create a new participant in the Degree model
+        const newParticipant = new Degree({
             rollNo,
             department,
             year,
             photoUrl,
-            joinTime: new Date(),
         });
 
-        // Save the participant
+        // Save the new participant
         await newParticipant.save();
 
-        // Add the participant to the room
+        // Add the new participant to the room's participant list
         const room = await Room.findById(roomId);
-        room.participants.push(newParticipant);
+        room.participants.push(newParticipant._id);
         await room.save();
 
         // Emit the new participant to all clients in the room via Socket.IO
-        const io = req.app.get('io'); // Assuming you have Socket.IO set up on the app
+        const io = req.app.get('io'); // Assuming Socket.IO instance is set up
         io.to(roomId).emit("participantJoined", {
             roomId,
             participant: newParticipant,
@@ -62,15 +64,15 @@ router.post("/:roomId/participants/remove/:participantId", async (req, res) => {
     try {
         const { roomId, participantId } = req.params;
 
-        // Remove participant from the room
+        // Remove the participant from the room's participant list
         const room = await Room.findById(roomId);
         room.participants.pull(participantId);
         await room.save();
 
-        // Delete the participant from the database
-        await Participant.findByIdAndDelete(participantId);
+        // Delete the participant from the Degree model
+        await Degree.findByIdAndDelete(participantId);
 
-        // Emit the removed participant to all clients in the room via Socket.IO
+        // Emit the participant removal to all clients in the room via Socket.IO
         const io = req.app.get('io');
         io.to(roomId).emit("participantLeft", { roomId, participantId });
 
