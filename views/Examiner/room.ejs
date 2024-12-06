@@ -15,48 +15,31 @@
 
         <div class="card shadow-sm">
             <div class="card-body">
-                <h5 class="card-title mb-3">Join the Room</h5>
-                <form id="joinRoomForm" class="mb-4">
-                    <div class="mb-3">
-                        <label for="rollNo" class="form-label">Roll Number:</label>
-                        <input type="text" id="rollNo" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="roomId" class="form-label">Room ID:</label>
-                        <input type="text" id="roomId" class="form-control" value="<%= room.roomId %>" readonly>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Join Room</button>
-                </form>
-
                 <h5 class="card-title mb-3">Participants List</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th scope="col">#</th>
-                                <th scope="col">Roll No</th>
-                                <th scope="col">Department</th>
-                                <th scope="col">Year</th>
-                                <th scope="col">Photo</th>
-                                <th scope="col">Join Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% room.participants.forEach((participant, index) => { %>
+                <% if (room.participants.length === 0) { %>
+                    <p class="text-muted">No participants have joined yet.</p>
+                <% } else { %>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
                                 <tr>
-                                    <td><%= index + 1 %></td>
-                                    <td><%= participant.rollNo %></td>
-                                    <td><%= participant.department %></td>
-                                    <td><%= participant.year %></td>
-                                    <td>
-                                        <img src="<%= participant.photoUrl %>" alt="Photo" width="50">
-                                    </td>
-                                    <td><%= moment(participant.joinTime).format('LLL') %></td>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Roll No</th>
+                                    <th scope="col">Join Time</th>
                                 </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                <% room.participants.forEach((participant, index) => { %>
+                                    <tr>
+                                        <td><%= index + 1 %></td>
+                                        <td><%= participant.rollNo %></td>
+                                        <td><%= moment(participant.joinTime).format('LLL') %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } %>
             </div>
         </div>
     </div>
@@ -64,37 +47,27 @@
     <!-- Socket.IO Script -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
+
         const socket = io();
-
-        document.getElementById("joinRoomForm").addEventListener("submit", (e) => {
-            e.preventDefault();
-
-            const rollNo = document.getElementById("rollNo").value;
-            const roomId = document.getElementById("roomId").value;
-
-            // Emit the joinRoom event
-            socket.emit("joinRoom", { rollNo, roomId });
-        });
-
+        
+        // Listen for new participants
         socket.on("participantJoined", (data) => {
-            const tableBody = document.querySelector("tbody");
-            const newRow = document.createElement("tr");
+            console.log("Participant joined:", data);
+        if (data.roomId === "<%= room.roomId %>") {
+        const tableBody = document.querySelector("tbody");
+        console.log("Table body found:", tableBody);
+        const newRow = document.createElement("tr");
 
-            newRow.innerHTML = `
-                <td>${tableBody.rows.length + 1}</td>
-                <td>${data.rollNo}</td>
-                <td>${data.department}</td>
-                <td>${data.year}</td>
-                <td><img src="${data.photoUrl}" alt="Photo" width="50"></td>
-                <td>${new Date(data.joinTime).toLocaleString()}</td>
-            `;
+        newRow.innerHTML = `
+            <td>${tableBody.rows.length + 1}</td>
+            <td>${data.participant.rollNo}</td>
+            <td>${new Date(data.participant.joinTime).toLocaleString()}</td>
+        `;
 
-            tableBody.appendChild(newRow);
+        tableBody.appendChild(newRow);
+        }
         });
 
-        socket.on("error", (data) => {
-            alert(data.message);
-        });
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
