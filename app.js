@@ -78,6 +78,7 @@ const examinerRoutes = require("./routes/examiner");
 const addStudRoutes = require("./routes/addStud");
 const createClassRouter = require("./routes/createClass")(io);
 const getPaperRouter = require("./routes/getPaper");
+const roomRout = require("./routes/room")(io);
 
 app.use("/addStudents", addStudentsRoutes);
 app.use("/viewStudents", viewStudentsRoutes);
