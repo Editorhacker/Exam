@@ -16,6 +16,7 @@ module.exports = (io) => {
                 roomId += characters.charAt(Math.floor(Math.random() * characters.length));
             }
 
+            // Check if the generated roomId already exists in the database
             const existingRoom = await Room.findOne({ roomId });
             if (!existingRoom) {
                 isUnique = true;
@@ -96,7 +97,7 @@ module.exports = (io) => {
         try {
             const deletedRoom = await Room.findOneAndDelete({ roomId });
             if (deletedRoom) {
-                io.emit("roomDeleted", { roomId, roomName: deletedRoom.roomName });
+                io.emit("roomDeleted", { roomId });
                 req.flash("success", `Room "${deletedRoom.roomName}" deleted successfully.`);
             } else {
                 req.flash("error", "Room not found.");
@@ -118,7 +119,7 @@ module.exports = (io) => {
             // Step 1: Validate the room
             const room = await Room.findOne({ roomId });
             if (!room) {
-                console.error(`Room not found: ${roomId}`);
+                console.error("Room not found:", roomId);
                 return res.status(404).json({
                     success: false,
                     message: "Room not found.",
@@ -127,20 +128,25 @@ module.exports = (io) => {
             console.log("Room found:", room);
 
             // Step 2: Validate the student
-            const isValidStudent = await validateStudent(rollNumber);
-            if (!isValidStudent) {
-                console.error(`Validation failed for student roll number: ${rollNumber}`);
+            const student = await Degree.findOne({ rollno: rollNumber });
+            if (!student) {
+                console.error(`Student not found for roll number: ${rollNumber}`);
                 return res.status(400).json({
                     success: false,
-                    message: "Invalid roll number. Student validation failed.",
+                    message: "Invalid roll number. Student not found.",
                 });
             }
+            console.log("Student details:", student);
 
             // Step 3: Add the validated participant to the room
             const participant = {
                 rollNo: rollNumber,
+                department: student.department,
+                year: student.year,
+                photoUrl: student.photoUrl,
                 joinTime: new Date(),
             };
+
             room.participants.push(participant);
             await room.save();
 
@@ -152,9 +158,15 @@ module.exports = (io) => {
             return res.status(200).json({
                 success: true,
                 message: "Participant validated and added to the room successfully.",
+                studentDetails: {
+                    rollNumber: student.rollno,
+                    department: student.department,
+                    year: student.year,
+                    photoUrl: student.photoUrl,
+                },
             });
         } catch (error) {
-            console.error(`Error validating room or adding participant to room ${roomId}:`, error);
+            console.error("Error validating room or adding participant:", error);
             return res.status(500).json({
                 success: false,
                 message: "Internal server error.",
