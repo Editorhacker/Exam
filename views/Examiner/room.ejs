@@ -54,46 +54,32 @@
                 <% } %>
             </div>
         </div>
-
-        <!-- Activity Logs Section -->
-        <div class="card shadow-sm mt-4">
-            <div class="card-body">
-                <h5 class="card-title mb-3">Activity Logs</h5>
-                <ul id="logList" class="list-group">
-                    <!-- Logs will be appended here dynamically -->
-                </ul>
-            </div>
-        </div>
-
     </div>
 
     <!-- Socket.IO Script -->
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // Fetch logs from the server when the page is loaded
-        fetch(`/room/<%= room.roomId %>/logs`)
-            .then(response => response.json())
-            .then(data => {
-                const logList = document.getElementById('logList');
-                data.logs.forEach(log => {
-                    const listItem = document.createElement('li');
-                    listItem.classList.add('list-group-item');
-                    listItem.textContent = `${new Date(log.timestamp).toLocaleString()}: ${log.event}`;
-                    logList.appendChild(listItem);
-                });
-            })
-            .catch(error => {
-                console.error('Error fetching logs:', error);
-            });
-
-        // Listen for new logs using Socket.IO
         const socket = io();
-        socket.on("newLog", (logData) => {
-            const logList = document.getElementById('logList');
-            const listItem = document.createElement('li');
-            listItem.classList.add('list-group-item');
-            listItem.textContent = `${new Date(logData.timestamp).toLocaleString()}: ${logData.event}`;
-            logList.appendChild(listItem);
+        
+        // Listen for new participants
+        socket.on("participantJoined", (data) => {
+            if (data.roomId === "<%= room.roomId %>") {
+                const tableBody = document.querySelector("tbody");
+                const newRow = document.createElement("tr");
+
+                newRow.innerHTML = 
+                    <td>${tableBody.rows.length + 1}</td>
+                    <td>
+                        <img src="${data.participant.photoUrl || 'default-photo-url.jpg'}" alt="Photo" class="img-thumbnail" width="50">
+                    </td>
+                    <td>${data.participant.rollNo}</td>
+                    <td>${data.participant.department || 'N/A'}</td>
+                    <td>${data.participant.year || 'N/A'}</td>
+                    <td>${new Date(data.participant.joinTime).toLocaleString()}</td>
+                ;
+
+                tableBody.appendChild(newRow);
+            }
         });
     </script>
 
