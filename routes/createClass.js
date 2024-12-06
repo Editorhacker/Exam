@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const Room = require("../models/Room"); // Import the Room model
-const Degree = require("../models/Degree"); // Import the Degree model
+const Room = require("../models/Room");
+const Degree = require("../models/Degree");
 
 module.exports = (io) => {
     // Function to generate a unique random 5-character alphanumeric string
@@ -154,6 +154,14 @@ module.exports = (io) => {
 
             // Emit event for real-time updates
             io.emit("participantJoined", { roomId, participant });
+
+            // Emit log update for participant joining
+            io.emit("logUpdate", {
+                roomId,
+                participantRollNo: rollNumber,
+                timestamp: new Date(),
+                logMessage: `Participant with Roll No ${rollNumber} has joined the room.`,
+            });
 
             return res.status(200).json({
                 success: true,
