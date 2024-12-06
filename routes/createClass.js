@@ -115,19 +115,23 @@ module.exports = (io) => {
             }
             console.log("Room found:", room);
 
-            // Step 2: Validate the student
-            const isValidStudent = await validateStudent(rollNumber);
-            if (!isValidStudent) {
-                console.error(`Validation failed for student roll number: ${rollNumber}`);
+            // Step 2: Fetch student details
+            const student = await Degree.findOne({ rollno: rollNumber });
+            if (!student) {
+                console.error(`Student not found for roll number: ${rollNumber}`);
                 return res.status(400).json({
                     success: false,
-                    message: "Invalid roll number. Student validation failed.",
+                    message: "Invalid roll number. Student not found.",
                 });
             }
+            console.log("Student details:", student);
 
             // Step 3: Add the validated participant to the room
             const participant = {
                 rollNo: rollNumber,
+                department: student.department,
+                year: student.year,
+                photoUrl: student.photoUrl,
                 joinTime: new Date(),
             };
             room.participants.push(participant);
@@ -141,6 +145,12 @@ module.exports = (io) => {
             return res.status(200).json({
                 success: true,
                 message: "Participant validated and added to the room successfully.",
+                studentDetails: {
+                    rollNumber: student.rollno,
+                    department: student.department,
+                    year: student.year,
+                    photoUrl: student.photoUrl,
+                },
             });
         } catch (error) {
             console.error("Error validating room or adding participant:", error);
@@ -150,17 +160,6 @@ module.exports = (io) => {
             });
         }
     });
-
-    // Validate the student by checking their roll number in the database
-    async function validateStudent(rollNumber) {
-        try {
-            const student = await Degree.findOne({ rollno: rollNumber });
-            return student !== null; // If student exists, return true
-        } catch (error) {
-            console.error("Error validating student:", error);
-            return false; // If any error occurs, return false
-        }
-    }
 
     return router;
 };
