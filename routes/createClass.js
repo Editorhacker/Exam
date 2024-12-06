@@ -35,7 +35,7 @@ module.exports = (io) => {
 
             io.emit("roomCreated", {
                 room: newRoom,
-                message: `New classroom "${roomName}" has been created`,
+                message: New classroom "${roomName}" has been created,
             });
 
             req.flash("success", "Classroom created successfully!");
@@ -86,7 +86,7 @@ module.exports = (io) => {
             const deletedRoom = await Room.findOneAndDelete({ roomId });
             if (deletedRoom) {
                 io.emit("roomDeleted", { roomId });
-                req.flash("success", `Room "${deletedRoom.roomName}" deleted successfully.`);
+                req.flash("success", Room "${deletedRoom.roomName}" deleted successfully.);
             } else {
                 req.flash("error", "Room not found.");
             }
@@ -115,32 +115,23 @@ module.exports = (io) => {
             }
             console.log("Room found:", room);
 
-            // Step 2: Fetch student details
-            const student = await Degree.findOne({ rollno: rollNumber });
-            if (!student) {
-                console.error(`Student not found for roll number: ${rollNumber}`);
+            // Step 2: Validate the student
+            const isValidStudent = await validateStudent(rollNumber);
+            if (!isValidStudent) {
+                console.error(Validation failed for student roll number: ${rollNumber});
                 return res.status(400).json({
                     success: false,
-                    message: "Invalid roll number. Student not found.",
+                    message: "Invalid roll number. Student validation failed.",
                 });
             }
-            console.log("Student details:", student);
 
             // Step 3: Add the validated participant to the room
-            const degreeDetails = await Degree.findOne({ rollno: rollNumber });
-
-            if (degreeDetails) {
-                const participant = {
-                    rollNo: rollNumber,
-                    department: degreeDetails.department,
-                    year: degreeDetails.year,
-                    photoUrl: degreeDetails.photoUrl,
-                    joinTime: new Date(),
-                };
-
-                room.participants.push(participant);
-                await room.save();
-            }
+            const participant = {
+                rollNo: rollNumber,
+                joinTime: new Date(),
+            };
+            room.participants.push(participant);
+            await room.save();
 
             console.log("Updated Room Data After Adding Participant:", room);
 
@@ -150,12 +141,6 @@ module.exports = (io) => {
             return res.status(200).json({
                 success: true,
                 message: "Participant validated and added to the room successfully.",
-                studentDetails: {
-                    rollNumber: student.rollno,
-                    department: student.department,
-                    year: student.year,
-                    photoUrl: student.photoUrl,
-                },
             });
         } catch (error) {
             console.error("Error validating room or adding participant:", error);
