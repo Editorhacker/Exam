@@ -127,15 +127,22 @@ module.exports = (io) => {
             console.log("Student details:", student);
 
             // Step 3: Add the validated participant to the room
-            const participant = {
-                rollNo: rollNumber,
-                department: student.department,
-                year: student.year,
-                photoUrl: student.photoUrl,
-                joinTime: new Date(),
-            };
-            room.participants.push(participant);
-            await room.save();
+          // Fetch the student details when validating the room and student
+            const degreeDetails = await Degree.findOne({ rollno: rollNumber });
+            
+            if (degreeDetails) {
+                const participant = {
+                    rollNo: rollNumber,
+                    department: degreeDetails.department,
+                    year: degreeDetails.year,
+                    photoUrl: degreeDetails.photoUrl,
+                    joinTime: new Date(),
+                };
+            
+                room.participants.push(participant);
+                await room.save();
+            }
+
 
             console.log("Updated Room Data After Adding Participant:", room);
 
