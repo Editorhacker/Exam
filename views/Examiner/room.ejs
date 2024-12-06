@@ -36,7 +36,11 @@
                                     <tr>
                                         <td><%= index + 1 %></td>
                                         <td>
-                                            <img src="<%= participant.photoUrl || 'https://via.placeholder.com/50' %>" alt="Photo" class="rounded-circle" width="50" height="50">
+                                            <% if (participant.photoUrl) { %>
+                                                <img src="<%= participant.photoUrl %>" alt="Photo" class="img-thumbnail" width="50">
+                                            <% } else { %>
+                                                <img src="default-photo-url.jpg" alt="Default Photo" class="img-thumbnail" width="50">
+                                            <% } %>
                                         </td>
                                         <td><%= participant.rollNo %></td>
                                         <td><%= participant.department || 'N/A' %></td>
@@ -56,11 +60,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-
+        
         // Listen for new participants
         socket.on("participantJoined", (data) => {
-            console.log("Participant joined:", data);
-
             if (data.roomId === "<%= room.roomId %>") {
                 const tableBody = document.querySelector("tbody");
                 const newRow = document.createElement("tr");
@@ -68,7 +70,7 @@
                 newRow.innerHTML = `
                     <td>${tableBody.rows.length + 1}</td>
                     <td>
-                        <img src="${data.participant.photoUrl || 'https://via.placeholder.com/50'}" alt="Photo" class="rounded-circle" width="50" height="50">
+                        <img src="${data.participant.photoUrl || 'default-photo-url.jpg'}" alt="Photo" class="img-thumbnail" width="50">
                     </td>
                     <td>${data.participant.rollNo}</td>
                     <td>${data.participant.department || 'N/A'}</td>
