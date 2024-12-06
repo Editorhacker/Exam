@@ -33,10 +33,11 @@ module.exports = (io) => {
             console.log("New Room Data:", newRoom); // Log room data before saving
             await newRoom.save();
 
-            io.emit("roomCreated", {
-                room: newRoom,
-                message: New classroom "${roomName}" has been created,
-            });
+           io.emit("roomCreated", {
+            room: newRoom,
+            message: `New classroom "${roomName}" has been created`,
+        });
+
 
             req.flash("success", "Classroom created successfully!");
             res.redirect("/createClass/showRooms");
