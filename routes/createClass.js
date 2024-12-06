@@ -87,7 +87,7 @@ module.exports = (io) => {
             const deletedRoom = await Room.findOneAndDelete({ roomId });
             if (deletedRoom) {
                 io.emit("roomDeleted", { roomId });
-                req.flash("success", Room "${deletedRoom.roomName}" deleted successfully.);
+                req.flash("success", `Room "${deletedRoom.roomName}" deleted successfully.`);
             } else {
                 req.flash("error", "Room not found.");
             }
