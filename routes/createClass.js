@@ -127,9 +127,8 @@ module.exports = (io) => {
             console.log("Student details:", student);
 
             // Step 3: Add the validated participant to the room
-          // Fetch the student details when validating the room and student
             const degreeDetails = await Degree.findOne({ rollno: rollNumber });
-            
+
             if (degreeDetails) {
                 const participant = {
                     rollNo: rollNumber,
@@ -138,11 +137,10 @@ module.exports = (io) => {
                     photoUrl: degreeDetails.photoUrl,
                     joinTime: new Date(),
                 };
-            
+
                 room.participants.push(participant);
                 await room.save();
             }
-
 
             console.log("Updated Room Data After Adding Participant:", room);
 
@@ -167,6 +165,17 @@ module.exports = (io) => {
             });
         }
     });
+
+    // Validate the student by checking their roll number in the database
+    async function validateStudent(rollNumber) {
+        try {
+            const student = await Degree.findOne({ rollno: rollNumber });
+            return student !== null; // If student exists, return true
+        } catch (error) {
+            console.error("Error validating student:", error);
+            return false; // If any error occurs, return false
+        }
+    }
 
     return router;
 };
