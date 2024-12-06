@@ -8,10 +8,8 @@ const RoomSchema = new mongoose.Schema({
     active: { type: Boolean, default: true },
     participants: [
         {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Degree",
             rollNo: { type: String },
-            joinTime: { type: Date, default: Date.now }
+            joinTime: { type: Date, default: Date.now },
         },
     ],
 });
