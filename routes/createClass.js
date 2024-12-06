@@ -182,6 +182,33 @@ module.exports = (io) => {
         }
     });
 
+    // Endpoint to handle log updates from Android app
+    router.post("/logUpdate", async (req, res) => {
+        const { roomId, participantRollNo, logMessage } = req.body;
+
+        try {
+            // Emit the log message to all connected clients
+            io.emit("logUpdate", {
+                roomId,
+                participantRollNo,
+                timestamp: new Date(),
+                logMessage,
+            });
+
+            // Respond with success
+            return res.status(200).json({
+                success: true,
+                message: "Log update received and sent to clients.",
+            });
+        } catch (error) {
+            console.error("Error receiving log update:", error);
+            return res.status(500).json({
+                success: false,
+                message: "Error processing log update.",
+            });
+        }
+    });
+
     // Validate the student by checking their roll number in the database
     async function validateStudent(rollNumber) {
         try {
