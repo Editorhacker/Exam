@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,7 +30,6 @@
                                     <th scope="col">Department</th>
                                     <th scope="col">Year</th>
                                     <th scope="col">Join Time</th>
-                                    <th scope="col">Logs</th> <!-- New column for logs -->
                                 </tr>
                             </thead>
                             <tbody>
@@ -47,9 +47,6 @@
                                         <td><%= participant.department || 'N/A' %></td>
                                         <td><%= participant.year || 'N/A' %></td>
                                         <td><%= moment(participant.joinTime).format('LLL') %></td>
-                                        <td class="logs-cell"> <!-- New cell for logs -->
-                                            <!-- Logs will be dynamically added here -->
-                                        </td>
                                     </tr>
                                 <% }); %>
                             </tbody>
@@ -72,7 +69,7 @@
                 const newRow = document.createElement("tr");
 
                 newRow.innerHTML = 
-                    `<td>${tableBody.rows.length + 1}</td>
+                    <td>${tableBody.rows.length + 1}</td>
                     <td>
                         <img src="${data.participant.photoUrl || 'default-photo-url.jpg'}" alt="Photo" class="img-thumbnail" width="50">
                     </td>
@@ -80,26 +77,9 @@
                     <td>${data.participant.department || 'N/A'}</td>
                     <td>${data.participant.year || 'N/A'}</td>
                     <td>${new Date(data.participant.joinTime).toLocaleString()}</td>
-                    <td class="logs-cell"></td>`;  // New column for logs
+                ;
 
                 tableBody.appendChild(newRow);
-            }
-        });
-
-        // Listen for log updates
-        socket.on("logUpdate", (data) => {
-            if (data.roomId === "<%= room.roomId %>") {
-                // Find the row for the participant and update the logs cell
-                const rows = document.querySelectorAll("tbody tr");
-                rows.forEach(row => {
-                    const rollNo = row.cells[2].innerText;
-                    if (rollNo === data.participantRollNo) {
-                        const logCell = row.querySelector(".logs-cell");
-                        const newLog = document.createElement("p");
-                        newLog.textContent = `${new Date(data.timestamp).toLocaleString()}: ${data.logMessage}`;
-                        logCell.appendChild(newLog);
-                    }
-                });
             }
         });
     </script>
