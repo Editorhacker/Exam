@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
-const Room = require("../models/Room");
-const Degree = require("../models/Degree");
+const Room = require("../models/Room"); // Import the Room model
+const Degree = require("../models/Degree"); // Import the Degree model
 
 module.exports = (io) => {
     // Function to generate a unique random 5-character alphanumeric string
@@ -34,7 +34,7 @@ module.exports = (io) => {
     // Handle room creation
     router.post("/", async (req, res) => {
         const { roomName } = req.body;
-        const roomId = await generateUniqueRoomId();
+        const roomId = await generateUniqueRoomId(); // Ensure the room ID is unique
 
         try {
             const newRoom = new Room({
@@ -42,7 +42,7 @@ module.exports = (io) => {
                 roomId,
             });
 
-            console.log("New Room Data:", newRoom);
+            console.log("New Room Data:", newRoom); // Log room data before saving
             await newRoom.save();
 
             io.emit("roomCreated", {
@@ -62,10 +62,10 @@ module.exports = (io) => {
     // Show all created rooms
     router.get("/showRooms", async (req, res) => {
         try {
-            const rooms = await Room.find().sort({ createdAt: -1 });
+            const rooms = await Room.find().sort({ createdAt: -1 }); // Fetch rooms from DB
             res.render("Examiner/showRooms", {
                 rooms,
-                moment: require("moment"),
+                moment: require("moment"), // For date formatting
             });
         } catch (error) {
             console.error("Error fetching rooms:", error);
@@ -74,7 +74,7 @@ module.exports = (io) => {
         }
     });
 
-    // Join a specific room
+    // Add a new route to join a specific room
     router.get("/room/:roomId", async (req, res) => {
         try {
             const room = await Room.findOne({ roomId: req.params.roomId });
@@ -90,7 +90,7 @@ module.exports = (io) => {
         }
     });
 
-    // Delete a room
+    // Route to delete a room
     router.post("/deleteRoom/:roomId", async (req, res) => {
         const { roomId } = req.params;
 
@@ -110,12 +110,13 @@ module.exports = (io) => {
         res.redirect("/createClass/showRooms");
     });
 
-    // Validate room ID and add a participant
+    // Endpoint to validate room ID and add a participant
     router.post("/validateRoom", async (req, res) => {
         const { rollNumber, roomId } = req.body;
         console.log("Validating Room ID:", roomId);
 
         try {
+            // Step 1: Validate the room
             const room = await Room.findOne({ roomId });
             if (!room) {
                 console.error("Room not found:", roomId);
@@ -126,6 +127,7 @@ module.exports = (io) => {
             }
             console.log("Room found:", room);
 
+            // Step 2: Validate the student
             const student = await Degree.findOne({ rollno: rollNumber });
             if (!student) {
                 console.error(`Student not found for roll number: ${rollNumber}`);
@@ -136,6 +138,7 @@ module.exports = (io) => {
             }
             console.log("Student details:", student);
 
+            // Step 3: Add the validated participant to the room
             const participant = {
                 rollNo: rollNumber,
                 department: student.department,
@@ -147,13 +150,10 @@ module.exports = (io) => {
             room.participants.push(participant);
             await room.save();
 
-            io.to(roomId).emit("participantJoined", { roomId, participant });
-            io.to(roomId).emit("logUpdate", {
-                roomId,
-                participantRollNo: rollNumber,
-                timestamp: new Date(),
-                logMessage: `Participant with Roll No ${rollNumber} has joined the room.`,
-            });
+            console.log("Updated Room Data After Adding Participant:", room);
+
+            // Emit event for real-time updates
+            io.emit("participantJoined", { roomId, participant });
 
             return res.status(200).json({
                 success: true,
@@ -174,30 +174,16 @@ module.exports = (io) => {
         }
     });
 
-    // Handle log updates from Android app
-    router.post("/logUpdate", async (req, res) => {
-        const { roomId, participantRollNo, logMessage } = req.body;
-
+    // Validate the student by checking their roll number in the database
+    async function validateStudent(rollNumber) {
         try {
-            io.to(roomId).emit("logUpdate", {
-                roomId,
-                participantRollNo,
-                timestamp: new Date(),
-                logMessage,
-            });
-
-            return res.status(200).json({
-                success: true,
-                message: "Log update received and sent to clients.",
-            });
+            const student = await Degree.findOne({ rollno: rollNumber });
+            return student !== null; // If student exists, return true
         } catch (error) {
-            console.error("Error receiving log update:", error);
-            return res.status(500).json({
-                success: false,
-                message: "Error processing log update.",
-            });
+            console.error("Error validating student:", error);
+            return false; // If any error occurs, return false
         }
-    });
+    }
 
     return router;
 };
