@@ -5,6 +5,113 @@ const Degree = require("../models/Degree"); // Import the Degree model
 const Log = require("../models/Log"); // Import the Log model
 
 module.exports = (io) => {
+    // Function to generate a unique random 5-character alphanumeric string
+    async function generateUniqueRoomId() {
+        const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        let roomId = "";
+        let isUnique = false;
+
+        while (!isUnique) {
+            roomId = "";
+            for (let i = 0; i < 5; i++) {
+                roomId += characters.charAt(Math.floor(Math.random() * characters.length));
+            }
+
+            // Check if the generated roomId already exists in the database
+            const existingRoom = await Room.findOne({ roomId });
+            if (!existingRoom) {
+                isUnique = true;
+            }
+        }
+
+        return roomId;
+    }
+
+    // Render the create class form
+    router.get("/", (req, res) => {
+        res.render("Examiner/createClass");
+    });
+
+    // Handle room creation
+    router.post("/", async (req, res) => {
+        const { roomName } = req.body;
+        const roomId = await generateUniqueRoomId(); // Ensure the room ID is unique
+
+        try {
+            const newRoom = new Room({
+                roomName,
+                roomId,
+            });
+
+            console.log("New Room Data:", newRoom); // Log room data before saving
+            await newRoom.save();
+
+            io.emit("roomCreated", {
+                room: newRoom,
+                message: `New classroom "${roomName}" has been created`,
+            });
+
+            req.flash("success", "Classroom created successfully!");
+            res.redirect("/createClass/showRooms");
+        } catch (error) {
+            console.error("Error creating room:", error);
+            req.flash("error", "Failed to create classroom.");
+            res.redirect("/createClass");
+        }
+    });
+
+    // Show all created rooms
+    router.get("/showRooms", async (req, res) => {
+        try {
+            const rooms = await Room.find().sort({ createdAt: -1 }); // Fetch rooms from DB
+            res.render("Examiner/showRooms", {
+                rooms,
+                moment: require("moment"), // For date formatting
+            });
+        } catch (error) {
+            console.error("Error fetching rooms:", error);
+            req.flash("error", "Failed to fetch classrooms.");
+            res.redirect("/");
+        }
+    });
+
+    // Add a new route to join a specific room
+    router.get("/room/:roomId", async (req, res) => {
+        try {
+            const room = await Room.findOne({ roomId: req.params.roomId });
+            if (!room) {
+                req.flash("error", "Classroom not found!");
+                return res.redirect("/createClass/showRooms");
+            }
+            res.render("Examiner/room", { room, moment: require("moment") });
+        } catch (error) {
+            console.error("Error finding room:", error);
+            req.flash("error", "Failed to fetch classroom details.");
+            res.redirect("/createClass/showRooms");
+        }
+    });
+
+    // Route to delete a room
+    router.post("/deleteRoom/:roomId", async (req, res) => {
+        const { roomId } = req.params;
+
+        try {
+            const deletedRoom = await Room.findOneAndDelete({ roomId });
+            if (deletedRoom) {
+                io.emit("roomDeleted", { roomId });
+                req.flash("success", `Room "${deletedRoom.roomName}" deleted successfully.`);
+            } else {
+                req.flash("error", "Room not found.");
+            }
+        } catch (error) {
+            console.error("Error deleting room:", error);
+            req.flash("error", "Failed to delete the room.");
+        }
+
+        res.redirect("/createClass/showRooms");
+    });
+
+    // Endpoint to validate room ID and add a participant with logs
     router.post("/validateRoom", async (req, res) => {
         const { rollNumber, roomId } = req.body;
         console.log("Validating Room ID:", roomId);
@@ -36,20 +143,17 @@ module.exports = (io) => {
             const logs = await Log.find({ rollNumber });
             console.log("Fetched logs for student:", logs);
 
-            // Step 4: Transform logs into the desired format (only `event` and `timestamp`)
-            const participantLogs = logs.map((log) => ({
-                event: log.event,
-                timestamp: log.timestamp,
-            }));
-
-            // Step 5: Add the validated participant with logs to the room
+            // Step 4: Add the validated participant with logs to the room
             const participant = {
                 rollNo: rollNumber,
                 department: student.department,
                 year: student.year,
                 photoUrl: student.photoUrl,
                 joinTime: new Date(),
-                logs: participantLogs, // Attach fetched logs
+                logs: logs.map((log) => ({
+                    event: log.event,
+                    timestamp: log.timestamp,
+                })),
             };
 
             room.participants.push(participant);
@@ -68,7 +172,7 @@ module.exports = (io) => {
                     department: student.department,
                     year: student.year,
                     photoUrl: student.photoUrl,
-                    logs: participantLogs, // Include logs in the response
+                    logs: participant.logs, // Include logs in the response
                 },
             });
         } catch (error) {
